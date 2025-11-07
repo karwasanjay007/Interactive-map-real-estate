@@ -139,19 +139,6 @@ export const useTools = create<{
 export interface LiveClientToolResponse {
   functionResponses?: FunctionResponse[];
 }
-// FIX: Update GroundingChunk to match the type from @google/genai, where uri and title are optional.
-// export interface GroundingChunk {
-//   web?: {
-//     uri?: string;
-//     title?: string;
-//   };
-//   maps?: {
-//     uri?: string;
-//     title?: string;
-//     placeId: string;
-//     placeAnswerSources?: any;
-//   };
-// }
 
 export interface ConversationTurn {
   timestamp: Date;

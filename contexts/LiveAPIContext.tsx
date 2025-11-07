@@ -18,7 +18,6 @@
  * limitations under the License.
  */
 
-// FIX: Added missing React import for JSX.
 import React, { createContext, FC, ReactNode, useContext } from 'react';
 import { useLiveApi, UseLiveApiResults } from '../hooks/use-live-api';
 

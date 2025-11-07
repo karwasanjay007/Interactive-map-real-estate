@@ -22,7 +22,6 @@
  */
 
 import {useMapsLibrary} from '@vis.gl/react-google-maps';
-// FIX: Added missing React imports.
 import React, {
   ForwardedRef,
   forwardRef,
@@ -94,7 +93,6 @@ export const Map3D = forwardRef(
         heading={heading}
         tilt={tilt}
         roll={roll}
-        // FIX: Removed unused @ts-expect-error as type is now defined.
         defaultUIHidden={true}
         mode="SATELLITE"></gmp-map-3d>
     );

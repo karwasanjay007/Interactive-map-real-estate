@@ -2,7 +2,6 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-// FIX: Added missing React imports.
 import React, { useEffect, useMemo } from 'react';
 import { useSettings, useUI, useLogStore, useTools, personas } from '@/lib/state';
 import c from 'classnames';

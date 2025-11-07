@@ -4,7 +4,6 @@
 */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 // import WelcomeScreen from '../welcome-screen/WelcomeScreen';
-// FIX: Import LiveServerContent to correctly type the content handler.
 import { LiveConnectConfig, Modality, LiveServerContent } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -241,7 +240,6 @@ export default function StreamingConsole() {
 
     const handleTurnComplete = () => {
       const turns = useLogStore.getState().turns;
-      // FIX: Replace .at(-1) with array indexing for broader compatibility.
       const last = turns[turns.length - 1];
       if (last && !last.isFinal) {
         updateLastTurn({ isFinal: true });

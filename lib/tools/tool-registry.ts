@@ -26,7 +26,36 @@
 import { GenerateContentResponse, GroundingChunk } from '@google/genai';
 import { fetchMapsGroundedResponseREST } from '@/lib/maps-grounding';
 import { MapMarker, useLogStore, useMapStore } from '@/lib/state';
-import { lookAtWithPadding } from '../look-at';
+
+// Hardcoded data for Dubai communities and projects to simulate a database API
+const dubaiCommunities: Record<string, { lat: number; lng: number }> = {
+  'dubai hills estate': { lat: 25.1118, lng: 55.2575 },
+  'palm jumeirah': { lat: 25.1189, lng: 55.1383 },
+  'downtown dubai': { lat: 25.1972, lng: 55.2744 },
+  'dubai marina': { lat: 25.0784, lng: 55.1384 },
+  'arabian ranches': { lat: 25.0683, lng: 55.2515 },
+};
+
+const realEstateProjects: Record<string, { name: string; type: string; position: { lat: number; lng: number } }[]> = {
+  'dubai hills estate': [
+    { name: 'Maple at Dubai Hills', type: 'Villas', position: { lat: 25.1050, lng: 55.2600 } },
+    { name: 'Park Heights', type: 'Apartments', position: { lat: 25.1150, lng: 55.2550 } },
+    { name: 'Golfville', type: 'Off-plan', position: { lat: 25.1100, lng: 55.2590 } },
+  ],
+  'downtown dubai': [
+    { name: 'Burj Khalifa Residences', type: 'Apartments', position: { lat: 25.1972, lng: 55.2744 } },
+    { name: 'The Address Downtown', type: 'Apartments', position: { lat: 25.1945, lng: 55.2787 } },
+    { name: 'Grande Opera District', type: 'Off-plan', position: { lat: 25.1930, lng: 55.2760 } },
+  ],
+  'palm jumeirah': [
+      { name: 'The Palm Tower', type: 'Apartments', position: { lat: 25.1118, lng: 55.1495 } },
+      { name: 'XXII Carat', type: 'Villas', position: { lat: 25.1025, lng: 55.1275 } },
+  ],
+  'dubai marina': [
+      { name: 'Marina Gate', type: 'Apartments', position: { lat: 25.0870, lng: 55.1470 } },
+      { name: 'Address Beach Resort', type: 'Apartments', position: { lat: 25.0780, lng: 55.1330 } },
+  ]
+};
 
 /**
  * Context object containing shared resources and setters that can be passed
@@ -227,188 +256,75 @@ const mapsGrounding: ToolImplementation = async (args, context) => {
 };
 
 /**
- * Tool implementation for displaying a city on the 3D map.
- * This tool sets the `cameraTarget` in the global Zustand store. The main `App`
- * component has a `useEffect` hook that listens for changes to this state and
- * commands the `MapController` to fly to the new target.
+ * Tool implementation for displaying a Dubai community on the 3D map.
  */
-const frameEstablishingShot: ToolImplementation = async (args, context) => {
-  let { lat, lng, geocode } = args;
-  const { geocoder } = context;
+const locateCommunity: ToolImplementation = async (args, context) => {
+  const { communityName } = args;
 
-  if (geocode && typeof geocode === 'string') {
-    if (!geocoder) {
-      const errorMessage = 'Geocoding service is not available.';
-      useLogStore.getState().addTurn({
-        role: 'system',
-        text: errorMessage,
-        isFinal: true,
-      });
-      return errorMessage;
-    }
-    try {
-      const response = await geocoder.geocode({ address: geocode });
-      if (response.results && response.results.length > 0) {
-        const location = response.results[0].geometry.location;
-        lat = location.lat();
-        lng = location.lng();
-      } else {
-        const errorMessage = `Could not find a location for "${geocode}".`;
-        useLogStore.getState().addTurn({
-          role: 'system',
-          text: errorMessage,
-          isFinal: true,
-        });
-        return errorMessage;
-      }
-    } catch (error) {
-      console.error(`Geocoding failed for "${geocode}":`, error);
-      const errorMessage = `There was an error trying to find the location for "${geocode}". See browser console for details.`;
-      useLogStore.getState().addTurn({
-        role: 'system',
-        text: errorMessage,
-        isFinal: true,
-      });
-      return `There was an error trying to find the location for "${geocode}".`;
-    }
+  if (typeof communityName !== 'string') {
+    return 'Invalid community name provided.';
   }
 
-  if (typeof lat !== 'number' || typeof lng !== 'number') {
-    return 'Invalid arguments for frameEstablishingShot. You must provide either a `geocode` string or numeric `lat` and `lng` values.';
+  const communityKey = communityName.toLowerCase();
+  const community = dubaiCommunities[communityKey];
+
+  if (!community) {
+    const message = `Sorry, I couldn't find the community "${communityName}". Please try another, like "Dubai Hills Estate" or "Downtown Dubai".`;
+    useLogStore.getState().addTurn({ role: 'system', text: message, isFinal: true });
+    return message;
   }
 
-  // Instead of directly manipulating the map, we set a target in the global state.
-  // The App component will observe this state and command the MapController to fly to the target.
+  // Clear previous markers when locating a new community
+  useMapStore.getState().clearMarkers();
+
   useMapStore.getState().setCameraTarget({
-    center: { lat, lng, altitude: 5000 },
-    range: 15000,
-    tilt: 10,
+    center: { ...community, altitude: 2000 },
+    range: 10000,
+    tilt: 30,
     heading: 0,
     roll: 0,
   });
 
-  if (geocode) {
-    return `Set camera target to ${geocode}.`;
-  }
-  return `Set camera target to latitude ${lat} and longitude ${lng}.`;
+  return `Located ${communityName} on the map.`;
 };
 
 
 /**
- * Tool implementation for framing a list of locations on the map. It can either
- * fly the camera to view the locations or add markers for them, letting the
- * main app's reactive state handle the camera framing.
+ * Tool implementation for finding and marking real estate projects on the map.
  */
-const frameLocations: ToolImplementation = async (args, context) => {
-  const {
-    locations: explicitLocations,
-    geocode,
-    markers: shouldCreateMarkers,
-  } = args;
-  const { elevationLib, padding, geocoder } = context;
+const findProjects: ToolImplementation = async (args, context) => {
+  const { communityName, projectType } = args;
 
-  const locationsWithLabels: { lat: number; lng: number; label?: string }[] =
-    [];
-
-  // 1. Collect all locations from explicit coordinates and geocoded addresses.
-  if (Array.isArray(explicitLocations)) {
-    locationsWithLabels.push(
-      ...(explicitLocations.map((loc: { lat: number; lng: number }) => ({
-        ...loc,
-      })) || []),
-    );
+  if (typeof communityName !== 'string' || typeof projectType !== 'string') {
+    return 'Invalid community name or project type provided.';
   }
 
-  if (Array.isArray(geocode) && geocode.length > 0) {
-    if (!geocoder) {
-      const errorMessage = 'Geocoding service is not available.';
-      useLogStore
-        .getState()
-        .addTurn({ role: 'system', text: errorMessage, isFinal: true });
-      return errorMessage;
-    }
+  const communityKey = communityName.toLowerCase();
+  const projectsInCommunity = realEstateProjects[communityKey];
 
-    const geocodePromises = geocode.map(address =>
-      geocoder.geocode({ address }).then(response => ({ response, address })),
-    );
-    const geocodeResults = await Promise.allSettled(geocodePromises);
+  if (!projectsInCommunity) {
+    return `I don't have project data for "${communityName}" right now.`;
+  }
+  
+  const filteredProjects = projectsInCommunity.filter(
+    p => p.type.toLowerCase().includes(projectType.toLowerCase())
+  );
 
-    geocodeResults.forEach(result => {
-      if (result.status === 'fulfilled') {
-        const { response, address } = result.value;
-        if (response.results && response.results.length > 0) {
-          const location = response.results[0].geometry.location;
-          locationsWithLabels.push({
-            lat: location.lat(),
-            lng: location.lng(),
-            label: address,
-          });
-        } else {
-          const errorMessage = `Could not find a location for "${address}".`;
-          useLogStore
-            .getState()
-            .addTurn({ role: 'system', text: errorMessage, isFinal: true });
-        }
-      } else {
-        const errorMessage = `Geocoding failed for an address.`;
-        console.error(errorMessage, result.reason);
-        useLogStore
-          .getState()
-          .addTurn({ role: 'system', text: errorMessage, isFinal: true });
-      }
-    });
+  if (filteredProjects.length === 0) {
+    return `I couldn't find any "${projectType}" projects in ${communityName}. You could try another type.`;
   }
 
-  // 2. Check if we have any valid locations.
-  if (locationsWithLabels.length === 0) {
-    return 'Could not find any valid locations to frame.';
-  }
+  const markersToSet: MapMarker[] = filteredProjects.map(project => ({
+    position: { ...project.position, altitude: 1 },
+    label: project.name,
+    showLabel: true,
+  }));
 
-  // 3. Perform the requested action.
-  if (shouldCreateMarkers) {
-    // Create markers and update the global state. The App component will
-    // reactively frame these new markers.
-    const markersToSet = locationsWithLabels.map((loc, index) => ({
-      position: { lat: loc.lat, lng: loc.lng, altitude: 1 },
-      label: loc.label || `Location ${index + 1}`,
-      showLabel: true,
-    }));
+  const { setMarkers, setPreventAutoFrame } = useMapStore.getState();
+  setPreventAutoFrame(false); // Ensure auto-framing is enabled
+  setMarkers(markersToSet);
 
-    const { setMarkers, setPreventAutoFrame } = useMapStore.getState();
-    setPreventAutoFrame(false); // Ensure auto-framing is enabled
-    setMarkers(markersToSet);
-
-    return `Framed and added markers for ${markersToSet.length} locations.`;
-  } else {
-    // No markers requested. Clear existing markers and manually fly the camera.
-    if (!elevationLib) {
-      return 'Elevation library is not available.';
-    }
-
-    useMapStore.getState().clearMarkers();
-
-    const elevator = new elevationLib.ElevationService();
-    const cameraProps = await lookAtWithPadding(
-      locationsWithLabels,
-      elevator,
-      0,
-      padding,
-    );
-
-    useMapStore.getState().setCameraTarget({
-      center: {
-        lat: cameraProps.lat,
-        lng: cameraProps.lng,
-        altitude: cameraProps.altitude,
-      },
-      range: cameraProps.range + 1000,
-      heading: cameraProps.heading,
-      tilt: cameraProps.tilt,
-      roll: 0,
-    });
-
-    return `Framed ${locationsWithLabels.length} locations on the map.`;
-  }
+  return `Found and marked ${filteredProjects.length} ${projectType} projects in ${communityName}.`;
 };
 
 /**
@@ -417,6 +333,6 @@ const frameLocations: ToolImplementation = async (args, context) => {
  */
 export const toolRegistry: Record<string, ToolImplementation> = {
   mapsGrounding,
-  frameEstablishingShot,
-  frameLocations,
+  locateCommunity,
+  findProjects,
 };

@@ -21,9 +21,12 @@
 
 /* eslint-disable @typescript-eslint/no-namespace, @typescript-eslint/no-explicit-any */
 
-// FIX: Using a full React import to ensure this file is treated as a module,
+// Using a full React import to ensure this file is treated as a module,
 // which is required for module augmentation to work correctly.
 import React from 'react';
+// FIX: The `import type {}` was not sufficient for TypeScript to find the module
+// for augmentation. A side-effect import is needed to make the module's declarations available.
+import '@vis.gl/react-google-maps';
 
 // add an overload signature for the useMapsLibrary hook, so typescript
 // knows what the 'maps3d' library is.
@@ -31,7 +34,6 @@ declare module '@vis.gl/react-google-maps' {
   export function useMapsLibrary(
     name: 'maps3d'
   ): google.maps.Maps3DLibrary | null;
-  // FIX: Add overload for 'elevation' library to provide strong types for the ElevationService.
   export function useMapsLibrary(
     name: 'elevation'
   ): google.maps.ElevationLibrary | null;
@@ -48,20 +50,17 @@ declare module '@vis.gl/react-google-maps' {
 // temporary fix until @types/google.maps is updated with the latest changes
 declare global {
   namespace google.maps {
-    // FIX: Add missing LatLng interface
     interface LatLng {
       lat(): number;
       lng(): number;
       toJSON(): {lat: number; lng: number};
     }
 
-    // FIX: Add missing LatLngLiteral interface
     interface LatLngLiteral {
       lat: number;
       lng: number;
     }
 
-    // FIX: Add missing LatLngAltitude interface
     interface LatLngAltitude {
       lat: number;
       lng: number;
@@ -69,7 +68,6 @@ declare global {
       toJSON(): LatLngAltitudeLiteral;
     }
 
-    // FIX: Add missing LatLngAltitudeLiteral interface
     interface LatLngAltitudeLiteral {
       lat: number;
       lng: number;
@@ -83,7 +81,6 @@ declare global {
       PlaceContextualListConfigElement: any;
     }
 
-    // FIX: Add missing places namespace and Place class definition
     namespace places {
       class Place {
         constructor(options: {id: string});
@@ -95,7 +92,6 @@ declare global {
       }
     }
 
-    // FIX: Add missing types for the Elevation service.
     interface ElevationLibrary {
       ElevationService: {
         new (): ElevationService;
@@ -165,7 +161,6 @@ declare global {
       // ... and other methods
     }
 
-    // FIX: Add interface for the maps3d library to provide strong types
     interface Maps3DLibrary {
       Marker3DInteractiveElement: {
         new (options: any): HTMLElement;
@@ -195,7 +190,6 @@ declare global {
         mode?: 'HYBRID' | 'SATELLITE';
         flyCameraAround: (options: FlyAroundAnimationOptions) => void;
         flyCameraTo: (options: FlyToAnimationOptions) => void;
-        // FIX: Add element properties to be used as attributes in JSX
         center: google.maps.LatLngAltitude | google.maps.LatLngAltitudeLiteral;
         heading: number;
         range: number;
@@ -204,7 +198,6 @@ declare global {
         defaultUIHidden?: boolean;
       }
 
-      // FIX: Add missing Map3DElementOptions interface
       interface Map3DElementOptions {
         center?: google.maps.LatLngAltitude | google.maps.LatLngAltitudeLiteral;
         heading?: number;
@@ -233,7 +226,6 @@ declare module 'react' {
 // a helper type for CustomElement definitions
 type CustomElement<TElem, TAttr> = Partial<
   TAttr &
-    // FIX: Use fully-qualified type names since the import was removed.
     React.DOMAttributes<TElem> &
     React.RefAttributes<TElem> & {
       // for whatever reason, anything else doesn't work as children

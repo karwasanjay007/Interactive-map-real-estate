@@ -9,45 +9,19 @@ import { FunctionResponseScheduling } from '@google/genai';
 export const itineraryPlannerTools: FunctionCall[] = [
   {
     name: 'mapsGrounding',
-    description: `
-    A versatile tool that leverages Google Maps data to generate contextual information and creative content about places. It can be used for two primary purposes:
-
-    1.  **For Itinerary Planning:** Find and summarize information about places like restaurants, museums, or parks. Use a straightforward query to get factual summaries of top results.
-        -   **Example Query:** "fun museums in Paris" or "best pizza in Brooklyn".
-
-    2.  **For Creative Content:** Generate engaging narratives, riddles, or scavenger hunt clues based on real-world location data. Use a descriptive query combined with a custom 'systemInstruction' to guide the creative output.
-        -   **Example Query:** "a famous historical restaurant in Paris".
-
-    Args:
-        query: A string describing the search parameters. You **MUST be as precise as possible**, include as much location data that you can such as city, state and/or country to reduce ambiguous results.
-        markerBehavior: (Optional) Controls map markers. "mentioned" (default), "all", or "none".
-        systemInstruction: (Optional) A string that provides a persona and instructions for the tool's output. Use this for creative tasks to ensure the response is formatted as a clue, riddle, etc.
-        enableWidget: (Optional) A boolean to control whether the interactive maps widget is enabled for the response. Defaults to true. Set to false for simple text-only responses or when the UI cannot support the widget.
-
-    Returns:
-        A response from the maps grounding agent. The content and tone of the response will be shaped by the query and the optional 'systemInstruction'.
-    `,
+    description: `A tool that uses Google Maps data to find nearby points of interest (amenities) like schools, hospitals, malls, or restaurants.`,
     parameters: {
       type: 'OBJECT',
       properties: {
         query: {
           type: 'STRING',
+          description: 'A search query, like "schools near Dubai Hills Estate" or "restaurants in Downtown Dubai". You MUST be as precise as possible.',
         },
         markerBehavior: {
           type: 'STRING',
           description:
             'Controls which results get markers. "mentioned" for places in the text response, "all" for all search results, or "none" for no markers.',
           enum: ['mentioned', 'all', 'none'],
-        },
-        systemInstruction: {
-          type: 'STRING',
-          description:
-            "A string that provides a persona and instructions for the tool's output. Use this for creative tasks to ensure the response is formatted as a clue, riddle, etc.",
-        },
-        enableWidget: {
-          type: 'BOOLEAN',
-          description:
-            'A boolean to control whether the interactive maps widget is enabled for the response. Defaults to true. Set to false for simple text-only responses or when the UI cannot support the widget.',
         },
       },
       required: ['query'],
@@ -56,57 +30,37 @@ export const itineraryPlannerTools: FunctionCall[] = [
     scheduling: FunctionResponseScheduling.INTERRUPT,
   },
   {
-    name: 'frameEstablishingShot',
-    description: 'Call this function to display a city or location on the map. Provide either a location name to geocode, or a specific latitude and longitude. This provides a wide, establishing shot of the area.',
+    name: 'locateCommunity',
+    description: 'Call this function to display a specific Dubai community on the map. This provides a wide, establishing shot of the area.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        geocode: {
+        communityName: {
           type: 'STRING',
-          description: 'The name of the location to look up (e.g., "Paris, France"). You **MUST be as precise as possible**, include as much location data that you can such as city, state and/or country to reduce ambiguous results.'
-        },
-        lat: {
-          type: 'NUMBER',
-          description: 'The latitude of the location.'
-        },
-        lng: {
-          type: 'NUMBER',
-          description: 'The longitude of the location.'
+          description: 'The name of the Dubai community to locate (e.g., "Dubai Hills Estate", "Palm Jumeirah").',
         },
       },
+      required: ['communityName'],
     },
     isEnabled: true,
     scheduling: FunctionResponseScheduling.INTERRUPT,
   },
   {
-    name: 'frameLocations',
-    description: 'Frames multiple locations on the map, ensuring all are visible. Provide either an array of location names to geocode, or an array of specific latitude/longitude points. Can optionally add markers for these locations. When relying on geocoding you **MUST be as precise as possible**, include as much location data that you can such as city, state and/or country to reduce ambiguous results.',
+    name: 'findProjects',
+    description: 'Finds and displays real estate projects on the map within a specific community. It adds markers for each project found.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        locations: {
-          type: 'ARRAY',
-          items: {
-            type: 'OBJECT',
-            properties: {
-              lat: { type: 'NUMBER' },
-              lng: { type: 'NUMBER' },
-            },
-            required: ['lat', 'lng'],
-          },
+        communityName: {
+          type: 'STRING',
+          description: 'The name of the community where to search for projects.',
         },
-        geocode: {
-          type: 'ARRAY',
-          description: 'An array of location names to look up (e.g., ["Eiffel Tower", "Louvre Museum"]).',
-          items: {
-            type: 'STRING',
-          },
+        projectType: {
+          type: 'STRING',
+          description: 'The type of project to search for (e.g., "Villas", "Apartments", "Off-plan").',
         },
-        markers: {
-          type: 'BOOLEAN',
-          description: 'If true, adds markers to the map for each location being framed.'
-        }
       },
+      required: ['communityName', 'projectType'],
     },
     isEnabled: true,
     scheduling: FunctionResponseScheduling.INTERRUPT,

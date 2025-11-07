@@ -21,7 +21,6 @@
  * limitations under the License.
  */
 
-// FIX: Added missing React imports.
 import {useEffect, useRef} from 'react';
 import {Map3DCameraProps} from './map-3d';
 

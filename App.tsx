@@ -25,26 +25,25 @@ import StreamingConsole from './components/streaming-console/StreamingConsole';
 import PopUp from './components/popup/PopUp';
 import Sidebar from './components/Sidebar';
 import { LiveAPIProvider } from './contexts/LiveAPIContext';
-// FIX: Correctly import APIProvider as a named export.
 import { APIProvider, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { Map3D, Map3DCameraProps} from './components/map-3d';
 import { useMapStore } from './lib/state';
 import { MapController } from './lib/map-controller';
 
-const API_KEY = process.env.GEMINI_API_KEY as string;
+const API_KEY = process.env.API_KEY as string;
 if (typeof API_KEY !== 'string') {
   throw new Error(
-    'Missing required environment variable: GEMINI_API_KEY'
+    'Missing required environment variable: API_KEY'
   );
 }
 
 const INITIAL_VIEW_PROPS = {
   center: {
-    lat: 41.8739368,
-    lng: -87.6372648,
+    lat: 25.12, // Centered on Dubai
+    lng: 55.22,
     altitude: 1000
   },
-  range: 3000,
+  range: 35000, // Zoomed out to see major communities
   heading: 0,
   tilt: 30,
   roll: 0

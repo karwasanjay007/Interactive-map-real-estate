@@ -19,7 +19,6 @@
  */
 
 import cn from 'classnames';
-// FIX: Added missing React imports.
 import React, { memo, useEffect, useRef, useState, FormEvent, Ref } from 'react';
 import { AudioRecorder } from '../lib/audio-recorder';
 import { useLogStore, useUI, useSettings } from '@/lib/state';

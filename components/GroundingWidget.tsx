@@ -5,7 +5,6 @@
 
 'use client';
 
-// FIX: Added missing React import for JSX.
 import React from 'react';
 import {useMapsLibrary} from '@vis.gl/react-google-maps';
 import {useEffect, useRef} from 'react';
